@@ -1,23 +1,37 @@
 ---
 name: project-memory-system
-description: 为项目建立分层记忆结构（memory.md + technology.md）。当发现项目没有记忆体系、用户说"建立记忆结构"、"初始化项目记忆"、或开始新项目时触发。也适用于用户要求更新记忆、添加新模块记忆、或询问如何组织项目文档的场景。
+description: Create a layered memory structure for projects (memory.md + technology.md). Triggers when a project has no memory system, when users say "set up memory structure", "initialize project memory", or start a new project. Also applies when users ask to update memory, add module memory, or organize project documentation.
 ---
 
 # 分层记忆系统
 
 为项目建立分层的知识管理体系，让 AI 能够高效理解和维护项目上下文。
 
+## Agent 配置文件映射
+
+不同 agent 使用不同的项目级配置文件，本文档中统一称为 **"agent 配置文件"**。请根据当前运行环境选择对应文件：
+
+| Agent | 配置文件 |
+|-------|----------|
+| Claude Code | `CLAUDE.md` |
+| Codex / OpenCode | `AGENTS.md` |
+| Gemini CLI | `GEMINI.md` |
+| Cursor | `.cursor/rules/*.mdc` |
+| 其他 Agent | 该 agent 的项目级指令文件 |
+
+> 下文中所有提到 **"agent 配置文件"** 的地方，请替换为上表中对应的实际文件名。
+
 ## 核心理念
 
 ```
-CLAUDE.md (入口索引)
+agent 配置文件 (入口索引)
     ↓
 memory.md (分层记忆)
     ↓
 technology.md (技术复用索引)
 ```
 
-- **CLAUDE.md**: 项目偏好 + 记忆入口索引
+- **agent 配置文件**: 项目偏好 + 记忆入口索引
 - **memory.md**: 分层存储架构、功能、模块信息
 - **technology.md**: 记录可复用技术，避免重复造轮子
 
@@ -26,7 +40,7 @@ technology.md (技术复用索引)
 ### 1. 检测是否需要记忆体系
 
 检查项目根目录是否存在以下文件：
-- `CLAUDE.md` 中是否有记忆索引
+- agent 配置文件中是否有记忆索引
 - 根目录是否有 `memory.md`
 
 如果没有，主动提议："检测到项目还没有建立记忆体系，是否需要我帮你初始化？"
@@ -42,7 +56,7 @@ technology.md (技术复用索引)
 典型特征：`packages/`、`apps/`、多个 `package.json` / `pyproject.toml`
 
 ```
-CLAUDE.md
+<agent 配置文件>
 memory.md                    # 跨模块协议、整体架构
 packages/web/memory.md       # 前端模块
 packages/web/technology.md
@@ -56,7 +70,7 @@ docs/memory.md               # 设计文档索引（可选）
 典型特征：单个 `src/` 目录，一个入口
 
 ```
-CLAUDE.md
+<agent 配置文件>
 memory.md                    # 项目架构 + 模块索引
 technology.md                # 技术栈（与 memory.md 同级）
 src/modules/auth/memory.md   # 复杂子模块（按需）
@@ -69,7 +83,7 @@ src/modules/auth/memory.md   # 复杂子模块（按需）
 典型特征：对外发布、有 API surface、多版本
 
 ```
-CLAUDE.md
+<agent 配置文件>
 memory.md                    # 公共 API 索引、设计原则
 technology.md                # 构建工具、测试框架
 src/core/memory.md           # 核心模块（按需）
@@ -82,7 +96,7 @@ src/core/memory.md           # 核心模块（按需）
 典型特征：多个独立部署的服务
 
 ```
-CLAUDE.md
+<agent 配置文件>
 memory.md                    # 服务拓扑、跨服务协议
 services/user/memory.md      # 各服务独立记忆
 services/user/technology.md
@@ -211,9 +225,9 @@ services/order/technology.md
 
 > **版本记录规则**：记录主版本号或语义化范围（如 `^6.0`），不记录精确补丁版本。精确版本以 lock 文件为准。
 
-### 5. 更新 CLAUDE.md
+### 5. 更新 agent 配置文件
 
-在 CLAUDE.md 中添加记忆入口索引：
+在 agent 配置文件中添加记忆入口索引：
 
 ```markdown
 ## 项目记忆入口
@@ -231,7 +245,7 @@ services/order/technology.md
 
 ### 6. 添加记忆更新策略
 
-在 CLAUDE.md 中添加更新策略：
+在 agent 配置文件中添加更新策略：
 
 ```markdown
 ## 记忆更新策略
@@ -262,7 +276,7 @@ services/order/technology.md
 
 ### 7. 添加技术复用提醒
 
-在 CLAUDE.md 中添加：
+在 agent 配置文件中添加：
 
 ```markdown
 ## 技术复用优先
@@ -288,8 +302,8 @@ services/order/technology.md
 - [ ] 创建根目录 memory.md
 - [ ] 创建各子模块 memory.md
 - [ ] 创建 technology.md（主要模块）
-- [ ] 更新 CLAUDE.md 添加索引和策略
-- [ ] **验证记忆准确性**：对 memory.md 中记录的路径和模块描述执行 Glob/Grep 抽查
+- [ ] 更新 agent 配置文件添加索引和策略
+- [ ] **验证记忆准确性**：对 memory.md 中记录的路径和模块描述进行文件搜索抽查
 - [ ] 向用户展示创建的文件结构
 
 ## 维护指南
@@ -336,7 +350,7 @@ services/order/technology.md
 | 根 memory.md | 150 行 | 将详细内容下沉到子模块 memory.md |
 | 子模块 memory.md | 120 行 | 精简描述，或拆分出更细粒度的子 memory.md |
 | technology.md | 100 行 | 按类别拆分（如 `technology-ui.md`、`technology-infra.md`） |
-| CLAUDE.md 中的记忆相关部分 | 50 行 | 只保留索引表，策略细节移到根 memory.md |
+| agent 配置文件中的记忆相关部分 | 50 行 | 只保留索引表，策略细节移到根 memory.md |
 
 #### 精简策略
 
@@ -364,10 +378,10 @@ services/order/technology.md
 
 | 验证项 | 验证方法 | 说明 |
 |--------|----------|------|
-| 文件路径 | `Glob` 确认文件存在 | memory.md 中引用的每个路径都必须真实存在 |
-| 模块职责描述 | `Read` 关键文件的代码 | 不能仅凭目录名推测功能，要读代码确认 |
-| 技术栈版本 | `Read` package.json / pyproject.toml | technology.md 中记录的库必须在依赖列表中 |
-| 子模块索引链接 | `Glob` 确认目标 memory.md 存在 | 避免出现死链接 |
+| 文件路径 | 搜索确认文件存在 | memory.md 中引用的每个路径都必须真实存在 |
+| 模块职责描述 | 阅读关键文件的代码 | 不能仅凭目录名推测功能，要读代码确认 |
+| 技术栈版本 | 阅读 package.json / pyproject.toml | technology.md 中记录的库必须在依赖列表中 |
+| 子模块索引链接 | 搜索确认目标 memory.md 存在 | 避免出现死链接 |
 
 #### 更新时验证
 
@@ -383,7 +397,7 @@ services/order/technology.md
 ```
 抽查流程：
 1. 从 memory.md 中随机选取 2-3 个文件路径
-2. 用 Glob 确认路径存在
+2. 搜索确认路径存在
 3. 如有失效 → 修复记忆 → 继续主要任务
 4. 全部有效 → 直接继续
 ```
