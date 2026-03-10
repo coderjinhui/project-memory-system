@@ -1,0 +1,23 @@
+{
+  "skill_name": "project-memory-system",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我刚 clone 了一个新项目，帮我看看怎么组织一下文档结构",
+      "expected_output": "应该检测到没有记忆体系，主动提议初始化分层记忆结构",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "帮我建立记忆结构",
+      "expected_output": "扫描项目结构，识别需要 memory.md 的目录，创建分层记忆文件",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我新增了一个 packages/server/src/aila_server/agents 模块，需要更新记忆吗",
+      "expected_output": "根据记忆更新策略，指导用户创建新模块的 memory.md 并更新父级索引",
+      "files": []
+    }
+  ]
+}
