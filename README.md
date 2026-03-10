@@ -2,7 +2,9 @@
 
 [中文文档](README_zh.md)
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that creates a layered memory structure for your projects, enabling AI to efficiently understand and maintain project context.
+An [Agent Skill](https://github.com/vercel-labs/skills) that creates a layered memory structure for your projects, enabling AI to efficiently understand and maintain project context.
+
+Supports Claude Code, Cursor, Codex, OpenCode, and [37 more agents](https://github.com/vercel-labs/skills#supported-agents).
 
 ## What It Does
 
@@ -22,7 +24,7 @@ Without structured memory, AI assistants lose context between sessions. You end 
 ## Install
 
 ```bash
-claude install-skill https://github.com/coderjinhui/project-memory-system
+npx skills add coderjinhui/project-memory-system
 ```
 
 ## How It Works

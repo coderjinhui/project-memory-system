@@ -2,7 +2,9 @@
 
 [English](README.md)
 
-一个 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Skill，为项目建立分层记忆结构，让 AI 能够高效理解和维护项目上下文。
+一个 [Agent Skill](https://github.com/vercel-labs/skills)，为项目建立分层记忆结构，让 AI 能够高效理解和维护项目上下文。
+
+支持 Claude Code、Cursor、Codex、OpenCode 等 [40+ 个 AI 编程助手](https://github.com/vercel-labs/skills#supported-agents)。
 
 ## 它做什么
 
@@ -22,7 +24,7 @@
 ## 安装
 
 ```bash
-claude install-skill https://github.com/coderjinhui/project-memory-system
+npx skills add coderjinhui/project-memory-system
 ```
 
 ## 工作原理
