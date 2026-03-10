@@ -18,6 +18,36 @@
       "prompt": "我新增了一个 packages/server/src/aila_server/agents 模块，需要更新记忆吗",
       "expected_output": "根据记忆更新策略，指导用户创建新模块的 memory.md 并更新父级索引",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I just cloned a new project, can you help me organize the documentation?",
+      "expected_output": "Should detect no memory structure exists and proactively propose initializing a layered memory system",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Set up a memory structure for this project",
+      "expected_output": "Scan project structure, identify directories that need memory.md, and create layered memory files",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I added a new module at packages/server/src/aila_server/agents, should I update the memory?",
+      "expected_output": "Follow the memory update strategy to guide user in creating a new module memory.md and updating parent indexes",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "How should I document my project so AI can understand it better?",
+      "expected_output": "Should detect no memory structure and suggest initializing the layered memory system with memory.md and technology.md",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Initialize project memory",
+      "expected_output": "Ask about language preference, identify project type, scan structure, and create the full memory hierarchy",
+      "files": []
     }
   ]
 }
