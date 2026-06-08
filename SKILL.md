@@ -1,6 +1,6 @@
 ---
 name: project-memory-system
-description: Create a layered memory structure for projects (memory.md + technology.md). Triggers when a project has no memory system, when users say "set up memory structure", "initialize project memory", or start a new project. Also applies when users ask to update memory, add module memory, or organize project documentation.
+description: Create and maintain a layered memory structure for projects (memory.md + technology.md). Trigger when users type command-style prompts like /project-memory-system:init or /project-memory-system:update [file/module/all], when a project has no memory system, when users say "set up memory structure", "initialize project memory", or when they ask to update memory, add module memory, or organize project documentation.
 ---
 
 # 分层记忆系统
@@ -21,6 +21,16 @@ description: Create a layered memory structure for projects (memory.md + technol
 
 > 下文中所有提到 **"agent 配置文件"** 的地方，请替换为上表中对应的实际文件名。
 
+### 兼容策略
+
+- **不要默认创建 `CLAUDE.md`**。只有当前运行环境是 Claude Code，或用户明确要求 Claude Code 支持时，才创建/更新 `CLAUDE.md`。
+- **Codex / OpenCode 使用 `AGENTS.md`**。在这些环境下，把记忆入口、更新策略和技术复用提醒写入 `AGENTS.md`。
+- **Gemini CLI 使用 `GEMINI.md`**。不要把 Gemini 项目的入口写进 `CLAUDE.md` 或 `AGENTS.md`，除非项目已经同时维护多 agent 配置。
+- **Cursor 使用 `.cursor/rules/*.mdc`**。优先创建或更新 `.cursor/rules/project-memory.mdc`；如果已有合适的规则文件，则更新现有文件。
+- **多 agent 项目**：如果项目已经同时存在多个 agent 配置文件，只更新当前 agent 对应文件；只有用户要求跨 agent 同步时，才同时更新多个配置文件。
+- **未知 agent**：如果无法判断当前 agent 的项目级指令文件，先询问用户目标 agent，不要猜测文件名。
+- **记忆文件保持 agent 中立**：`memory.md`、`technology.md` 和子层记忆文件不写某个 agent 的专属行为；agent 专属说明只放在对应 agent 配置文件中。
+
 ## 核心理念
 
 ```
@@ -35,6 +45,93 @@ technology.md (技术复用索引)
 - **memory.md**: 分层存储架构、功能、模块信息
 - **technology.md**: 记录可复用技术，避免重复造轮子
 
+## 指令式调用入口
+
+本 skill 定义两个面向用户的指令式提示。它们是给 agent 识别并执行的文本入口，不保证会被宿主 CLI 自动注册为可补全的 slash command。用户使用这些文本入口时，优先按 `commands/` 目录中的流程执行；不要临时发明另一套初始化或更新流程。
+
+> 在 Codex 中，skill 安装不会自动创建自定义 slash command；用户可以通过 `/use project-memory-system` 显式加载 skill，然后输入下面的指令式提示，或直接用自然语言表达同样意图。
+
+| Command | 说明 | 流程文件 |
+|---------|------|----------|
+| `/project-memory-system:init` | 初始化项目分层记忆 | `commands/init.md` |
+| `/project-memory-system:update [文件/模块/all]` | 更新局部或全部项目记忆 | `commands/update.md` |
+
+### 指令路由
+
+- 用户输入 `/project-memory-system:init`：读取并执行 `commands/init.md`。
+- 用户输入 `/project-memory-system:update <文件或模块>`：读取并执行 `commands/update.md` 的“局部更新流程”。
+- 用户输入 `/project-memory-system:update all`：读取并执行 `commands/update.md` 的“全量更新流程”。
+- 用户只说“初始化项目记忆”“建立记忆结构”：等同 `/project-memory-system:init`。
+- 用户只说“更新记忆”“同步这个模块的 memory”：等同 `/project-memory-system:update <用户提到的路径或模块>`；如果没有路径或模块，先问一个简短问题确认范围。
+
+### 写入项目的指令说明
+
+初始化或更新 agent 配置文件时，加入以下指令说明，帮助后续 agent 使用同一套入口：
+
+```markdown
+## 项目记忆指令式提示
+
+- 输入 `/project-memory-system:init`：初始化项目分层记忆。仅在项目还没有记忆体系时使用。
+- 输入 `/project-memory-system:update <文件或模块>`：根据变更路径更新最贴近的 `memory.md`，必要时更新父级索引。
+- 输入 `/project-memory-system:update all`：全量审计并更新所有项目记忆。
+
+这些是 agent 识别的提示文本，不要求宿主 CLI 提供同名 slash command。
+
+执行前优先使用 skill 查询脚本定位记忆文档：
+- `node <skill-dir>/scripts/list-memory.js --root <project-root>`
+- `node <skill-dir>/scripts/find-memory.js <文件或模块> --root <project-root>`
+- `node <skill-dir>/scripts/get-memory.js <memory路径或模块> --root <project-root>`
+```
+
+## 查询脚本优先
+
+为避免 AI 通过反复遍历目录或读取大量文档来猜测记忆位置，读取或更新已有记忆前，优先使用本 skill 自带的 Node.js 查询脚本。脚本只返回精确路径或目标文件内容，减少 token 浪费。
+
+> 下方命令中的 `<skill-dir>` 是本 skill 所在目录；`<project-root>` 是目标项目根目录。`--root <project-root>` 必须显式传入，不要依赖当前工作目录，避免全局安装的 skill 扫描到项目之外的记忆文件。
+
+### 列出记忆文档
+
+```bash
+node <skill-dir>/scripts/list-memory.js --root <project-root>
+node <skill-dir>/scripts/list-memory.js workflow --root <project-root>
+```
+
+用途：
+- 列出项目中所有 `memory.md`
+- 按模块名、目录名、标题过滤记忆文档
+- 在回答“有哪些记忆文档”或“某模块有没有记忆”时使用
+
+### 查找某路径对应的记忆链
+
+```bash
+node <skill-dir>/scripts/find-memory.js src/workflow/nodes/conditions --root <project-root>
+node <skill-dir>/scripts/find-memory.js src/auth/policies/rbac.ts --root <project-root>
+```
+
+用途：
+- 找到某个模块/文件从根到最近层级的 `memory.md` 链
+- 在修改代码前确定应该读取哪些层级的记忆
+- 在更新记忆时确定最贴近变更的目标 `memory.md`
+
+### 读取单个记忆文档
+
+```bash
+node <skill-dir>/scripts/get-memory.js src/workflow --root <project-root>
+node <skill-dir>/scripts/get-memory.js src/workflow/memory.md --root <project-root>
+```
+
+用途：
+- 精确读取某个 `memory.md`
+- 如果查询匹配多个文件，脚本会提示候选项，避免误读大量文档
+
+### 使用规则
+
+1. **已有记忆体系时**：先运行 `list-memory.js` 或 `find-memory.js`，再读取精确文件。
+2. **针对某模块开发时**：先用 `find-memory.js <模块路径>` 获取记忆链，只读取链上的相关文件。
+3. **更新记忆时**：先用 `find-memory.js <变更路径>` 找到最近层级，优先更新最近的 `memory.md`，必要时再更新父级索引。
+4. **初始化新项目时**：如果 `list-memory.js` 找不到任何 `memory.md`，再进入递归建树流程。
+5. **脚本不可用时**：才回退到手动目录扫描和文件查找。
+
 ## 工作流程
 
 ### 1. 检测是否需要记忆体系
@@ -42,6 +139,12 @@ technology.md (技术复用索引)
 检查项目根目录是否存在以下文件：
 - agent 配置文件中是否有记忆索引
 - 根目录是否有 `memory.md`
+
+优先运行：
+
+```bash
+node <skill-dir>/scripts/list-memory.js --root <project-root>
+```
 
 如果没有，主动提议："检测到项目还没有建立记忆体系，是否需要我帮你初始化？"
 
@@ -108,9 +211,22 @@ services/order/technology.md
 
 **识别方法**：扫描根目录的配置文件和目录结构，匹配上述特征。如果不确定，询问用户确认。
 
-### 3. 分析目录结构
+### 3. 递归分析目录结构
 
-扫描项目目录，识别需要建立 memory.md 的位置。
+扫描项目目录，生成一棵按需展开的 memory tree。层级数量不固定：从项目根目录开始，对每个目录递归判断是否需要建立 `memory.md`，直到子目录不再具备独立记忆价值为止。
+
+#### 递归建树算法
+
+对每个目录执行以下流程：
+
+1. **只观察当前层**：分析当前目录的直接子目录、直接关键文件、配置文件和入口文件。不要把孙层细节提前写入当前层。
+2. **判断当前目录是否需要 memory.md**：根据复杂度信号决定，并记录一句理由。
+3. **如果需要 memory.md**：当前层只记录当前层的职责、直接子项索引、关键入口、当前层协议/约定，以及下一层 `memory.md` 链接。
+4. **继续下钻直接子目录**：对每个直接子目录重复本流程。只要子目录本身足够复杂，就可以继续创建更深层的 `memory.md`。
+5. **停止条件**：如果目录同质化、自动生成、命名已自解释、没有独立设计约定、没有复杂调用/业务边界，或继续拆分不会降低理解成本，则停止下钻。
+6. **父子隔离**：父层不得记录子层内部实现细节；孙层信息只能出现在孙层 `memory.md`。父层最多保留下一层索引和一句职责说明。
+
+> 不要假设只有三层。三层只是示例，真实项目中应根据复杂度递归到合适深度。
 
 #### 判断规则：需要 memory.md 的目录
 
@@ -119,6 +235,19 @@ services/order/technology.md
 | 内容性质 | 异质化（子项有不同功能/职责） | 同质化（子项遵循相同模式） |
 | 理解成本 | 需要导航地图才能理解 | 命名即文档，自解释 |
 | 架构价值 | 有设计决策、技术选型、协作约定 | 只是文件存放位置 |
+| 修改风险 | 修改前需要理解调用链、状态流、协议或业务边界 | 局部文件可直接阅读和修改 |
+| 复用价值 | 有可复用入口、约定、工具或抽象 | 没有独立复用价值 |
+
+#### 复杂度信号
+
+满足以下任意多项时，倾向于创建 `memory.md`：
+
+- 直接子目录职责不同，不能用统一模式解释
+- 存在多个入口、协议、状态流、数据模型或扩展点
+- 代码跨文件协作明显，修改前需要理解调用关系
+- 包含核心业务规则、框架适配层、插件系统、工作流、权限、调度、缓存、持久化等复杂领域
+- 目录内存在独立开发约定、测试策略、迁移约定或部署约定
+- 当前层 `memory.md` 如果继续展开会接近容量上限，需要把细节下沉到子层
 
 **需要 memory.md 的典型目录**：
 - 功能模块目录：`workflow/`, `auth/`, `llm/`
@@ -129,6 +258,20 @@ services/order/technology.md
 - 同质化容器：`migrations/`, `versions/`, `providers/`
 - 纯实现细节：`__pycache__/`, `node_modules/`, `.git/`
 - 自动生成目录：`dist/`, `build/`, `.next/`
+
+#### Memory tree 提案格式
+
+在创建文件前，先给出目录决策表并让用户确认：
+
+```markdown
+| 层级 | 目录 | 是否创建 memory.md | 判断理由 | 父级索引位置 |
+|------|------|--------------------|----------|--------------|
+| 0 | `/` | 是 | 项目入口，需要总览和一级索引 | agent 配置文件 |
+| 1 | `src/workflow/` | 是 | 工作流有多个职责不同的子模块 | `memory.md` |
+| 2 | `src/workflow/nodes/` | 是 | 节点类型异质化，需要二级导航 | `src/workflow/memory.md` |
+| 3 | `src/workflow/nodes/conditions/` | 按需 | 条件节点规则复杂时创建 | `src/workflow/nodes/memory.md` |
+| 2 | `src/workflow/tests/` | 否 | 测试目录同质化，命名自解释 | - |
+```
 
 ### 4. 创建记忆文件
 
@@ -147,10 +290,10 @@ services/order/technology.md
 
 ## 子模块索引
 
-| 模块 | 记忆文件 | 技术索引 | 说明 |
-|------|----------|----------|------|
-| 前端 | [packages/web/memory.md](packages/web/memory.md) | [technology.md](packages/web/technology.md) | Web 应用 |
-| 后端 | [packages/server/memory.md](packages/server/memory.md) | [technology.md](packages/server/technology.md) | API 服务 |
+| 直接子模块 | 记忆文件 | 技术索引 | 本层说明 |
+|------------|----------|----------|----------|
+| 前端 | [packages/web/memory.md](packages/web/memory.md) | [technology.md](packages/web/technology.md) | Web 应用入口 |
+| 后端 | [packages/server/memory.md](packages/server/memory.md) | [technology.md](packages/server/technology.md) | API 服务入口 |
 
 ## 跨模块协议
 
@@ -170,18 +313,20 @@ services/order/technology.md
 
 简述此模块的核心职责。
 
-## 目录结构
+## 当前层索引
 
 | 目录/文件 | 说明 |
 |-----------|------|
-| `src/` | 源代码 |
-| `tests/` | 测试文件 |
+| `index.ts` | 模块入口 |
+| `runtime/` | 当前层运行时实现 |
+
+> 只列出当前目录的直接子项。不要列出命名自解释、同质化或无导航价值的目录。
 
 ## 子模块索引
 
 | 子模块 | 记忆文件 | 说明 |
 |--------|----------|------|
-| workflow | [workflow/memory.md](src/xxx/workflow/memory.md) | 工作流引擎 |
+| nodes | [nodes/memory.md](nodes/memory.md) | 节点系统入口 |
 
 ## 关键文件
 
@@ -292,19 +437,23 @@ services/order/technology.md
 
 ## 执行检查清单
 
-初始化记忆体系时，按以下顺序执行：
+初始化记忆体系时，执行 `/project-memory-system:init`，详细流程见 `commands/init.md`。摘要顺序如下：
 
 - [ ] 询问用户项目的语言偏好（中文/英文）
 - [ ] 识别项目结构类型（Monorepo / 单体应用 / Library / 微服务）
-- [ ] 扫描项目结构，列出需要 memory.md 的目录
-- [ ] 与用户确认目录列表
+- [ ] 从根目录开始递归扫描，生成 memory tree 提案
+- [ ] 对每个候选目录写明是否创建 `memory.md` 及判断理由
+- [ ] 与用户确认 memory tree，不要默认固定层数
 - [ ] **深入阅读关键文件**（入口文件、配置文件、核心模块代码），确保记忆内容准确
 - [ ] 创建根目录 memory.md
-- [ ] 创建各子模块 memory.md
+- [ ] 按确认后的 memory tree 创建各层 memory.md
 - [ ] 创建 technology.md（主要模块）
 - [ ] 更新 agent 配置文件添加索引和策略
+- [ ] 检查父子层边界：父层只保留当前层信息和下一层索引，不重复子层细节
 - [ ] **验证记忆准确性**：对 memory.md 中记录的路径和模块描述进行文件搜索抽查
 - [ ] 向用户展示创建的文件结构
+
+更新记忆体系时，执行 `/project-memory-system:update [文件/模块/all]`，详细流程见 `commands/update.md`。不要用初始化流程处理更新请求。
 
 ## 维护指南
 
@@ -313,17 +462,18 @@ services/order/technology.md
 | 场景 | 动作 |
 |------|------|
 | 新增功能模块 | 创建对应 memory.md，更新父级索引 |
-| 修改现有模块 | 更新对应 memory.md |
+| 修改现有模块 | 更新最贴近变更目录的 memory.md；必要时向上更新父级索引 |
 | 引入新技术/库 | 更新 technology.md |
 | 删除模块 | 删除 memory.md，更新父级索引 |
-| 跨模块变更 | 更新根目录 memory.md |
+| 跨模块变更 | 先更新受影响子层，再更新共同父层或根目录协议 |
 
 ### 记忆文件原则
 
 1. **简洁优先**: 使用表格，避免冗长描述
-2. **索引导向**: 记录"在哪里"而非"是什么"
+2. **索引导向**: 记录"在哪里"和"为什么重要"，避免展开"怎么实现"
 3. **及时更新**: 功能完成后立即更新
-4. **分层隔离**: 只记录本层信息，子层信息由子层记忆负责
+4. **分层隔离**: 只记录本层信息和下一层索引，子层信息由子层记忆负责
+5. **按需递归**: 层级深度由代码复杂度决定，不由模板层数决定
 
 ### 记忆反模式（不该记什么）
 

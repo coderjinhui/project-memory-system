@@ -48,6 +48,72 @@
       "prompt": "Initialize project memory",
       "expected_output": "Ask about language preference, identify project type, scan structure, and create the full memory hierarchy",
       "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "帮我给一个复杂项目建立项目记忆。项目里有 src/workflow/nodes/conditions、src/workflow/nodes/actions、src/workflow/runtime、src/auth/providers、src/auth/policies 等多层业务目录，哪些层需要 memory.md 你自己判断。",
+      "expected_output": "Should propose a recursive memory tree instead of a fixed-depth layout, explain why each candidate directory does or does not need memory.md, and allow deeper directories such as src/workflow/nodes/conditions to have their own memory.md when complexity justifies it",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "更新已有记忆时，父级 memory.md 应该怎么写？我不想根 memory.md 里塞满 workflow/nodes/conditions 的业务细节。",
+      "expected_output": "Should state that parent memory files store only current-layer facts and next-layer indexes, child or grandchild implementation details belong in their own lower-level memory.md, and updates should target the nearest relevant layer before updating parent indexes",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "我想知道 workflow 模块有哪些记忆文档，不要从根目录一层层读，帮我快速定位。",
+      "expected_output": "Should use or recommend the bundled list-memory.js script with a workflow filter to return exact memory.md paths instead of manually traversing and reading many files",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "我要改 src/workflow/nodes/conditions/rule.ts，开发前应该读哪些 memory.md？",
+      "expected_output": "Should use or recommend find-memory.js for the changed file path, then read only the returned memory chain and update the nearest relevant memory.md after the change",
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "我在 Codex 里使用这个 skill 初始化项目记忆，应该更新哪个入口文件？",
+      "expected_output": "Should use AGENTS.md for Codex, avoid creating CLAUDE.md by default, and keep memory.md and technology.md agent-neutral",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "这个项目同时有 CLAUDE.md 和 AGENTS.md，我现在用 OpenCode 修改记忆入口。",
+      "expected_output": "Should update AGENTS.md for OpenCode, preserve CLAUDE.md unless cross-agent synchronization is explicitly requested, and keep shared memory files agent-neutral",
+      "files": []
+    },
+    {
+      "id": 15,
+      "prompt": "我用的 agent 你不认识，但我想初始化项目记忆。",
+      "expected_output": "Should ask which project-level instruction file the unknown agent uses instead of guessing CLAUDE.md, AGENTS.md, or another filename",
+      "files": []
+    },
+    {
+      "id": 16,
+      "prompt": "/project-memory-system:init",
+      "expected_output": "Should treat this as a skill-recognized command-style prompt, not assume it is a host-registered slash command, and execute the init workflow from commands/init.md: detect existing memory with list-memory.js, identify the agent config file, propose a recursive memory tree, create memory.md/technology.md files, and write project memory prompt instructions into the agent config file",
+      "files": []
+    },
+    {
+      "id": 17,
+      "prompt": "/project-memory-system:update src/workflow/nodes/rule.ts",
+      "expected_output": "Should treat this as a skill-recognized command-style prompt, not assume it is a host-registered slash command, and execute the local update workflow from commands/update.md: use find-memory.js for the path, read only the returned memory chain, update the nearest relevant memory.md, and update parent indexes only when needed",
+      "files": []
+    },
+    {
+      "id": 18,
+      "prompt": "/project-memory-system:update all",
+      "expected_output": "Should treat this as a skill-recognized command-style prompt, not assume it is a host-registered slash command, and execute the full audit workflow from commands/update.md: list all memory.md files with list-memory.js, audit paths and parent-child boundaries, update stale entries, and preserve prompt instructions in the agent config file",
+      "files": []
+    },
+    {
+      "id": 19,
+      "prompt": "这个 skill 是全局安装的，在项目里查询记忆时可以省略 --root 吗？",
+      "expected_output": "Should state that bundled memory scripts require an explicit --root <project-root>, must not rely on the current working directory, and should refuse to run without --root to avoid scanning memory files outside the target project",
+      "files": []
     }
   ]
 }
